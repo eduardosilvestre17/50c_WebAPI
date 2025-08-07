@@ -1,3 +1,4 @@
+#nullable disable
 using S50cBL22;
 using S50cBO22;
 using S50cSys22;
@@ -30,7 +31,7 @@ namespace Sage50c.WebAPI.Controllers
             FillDefaultValues();
             editState = EditState.New;
 
-            return _bsoItemTransaction.Transaction;
+            return _bsoItemTransaction?.Transaction ?? throw new InvalidOperationException("BSOItemTransaction não foi inicializado");
         }
 
         /// <summary>
@@ -38,12 +39,15 @@ namespace Sage50c.WebAPI.Controllers
         /// </summary>
         public ItemTransaction Load(bool Suspended, string TransDoc, string TransSerial, double TransDocNum)
         {
-            dynamic trans = null;
+            ItemTransaction? trans = null;
             editState = EditState.Editing;
             if (systemSettings.WorkstationInfo.Document.IsInCollection(TransDoc))
             {
                 _document = systemSettings.WorkstationInfo.Document[TransDoc];
-                _bsoItemTransaction.Transaction.TransDocType = TransGetType(TransDoc);
+                if (_bsoItemTransaction?.Transaction != null)
+                {
+                    _bsoItemTransaction.Transaction.TransDocType = TransGetType(TransDoc);
+                }
             }
             else
             {
@@ -93,10 +97,10 @@ namespace Sage50c.WebAPI.Controllers
                 // Ensure till is open - method may not exist in this version
                 // _bsoItemTransaction.EnsureOpenTill(_bsoItemTransaction.Transaction.Till.TillID);
 
-                result = _bsoItemTransaction.SaveItemTransaction(false, false);
+                result = _bsoItemTransaction?.SaveItemTransaction(false, false) ?? false;
                 if (!result)
                 {
-                    int WarningId = (int)_bsoItemTransaction.TransactionWarning;
+                    int WarningId = (int)(_bsoItemTransaction?.TransactionWarning ?? 0);
                     if (WarningId != 0)
                     {
                         string sMsg = APIEngine.gLng.GS((int)WarningId);
@@ -112,32 +116,33 @@ namespace Sage50c.WebAPI.Controllers
         /// <summary>
         /// Delete transaction 
         /// </summary>
-        public TransactionID Remove()
+        public TransactionID? Remove()
         {
-            var transType = TransGetType(_bsoItemTransaction.Transaction.TransDocument);
-            TransactionID trans = null;
+            var transType = TransGetType(_bsoItemTransaction?.Transaction?.TransDocument ?? "");
+            TransactionID? trans = null;
             if (transType != DocumentTypeEnum.dcTypeSale && transType != DocumentTypeEnum.dcTypePurchase)
             {
-                throw new Exception($"O documento indicado [{_bsoItemTransaction.Transaction.TransDocument}] não é um documento de venda/compra");
+                throw new Exception($"O documento indicado [{_bsoItemTransaction?.Transaction?.TransDocument}] não é um documento de venda/compra");
             }
             else
             {
-                if (_bsoItemTransaction.LoadItemTransaction(transType, _bsoItemTransaction.Transaction.TransSerial, _bsoItemTransaction.Transaction.TransDocument, _bsoItemTransaction.Transaction.TransDocNumber))
+                if (_bsoItemTransaction?.LoadItemTransaction(transType, _bsoItemTransaction?.Transaction?.TransSerial ?? "", _bsoItemTransaction?.Transaction?.TransDocument ?? "", _bsoItemTransaction?.Transaction?.TransDocNumber ?? 0) == true)
                 {
-                    _bsoItemTransaction.Transaction.VoidMotive = "Anulado por: Web API";
-                    if (_bsoItemTransaction.DeleteItemTransaction(false))
+                    if (_bsoItemTransaction?.Transaction != null)
+                        _bsoItemTransaction.Transaction.VoidMotive = "Anulado por: Web API";
+                    if (_bsoItemTransaction?.DeleteItemTransaction(false) == true)
                     {
                         _document = null;
-                        trans = _bsoItemTransaction.Transaction.TransactionID;
+                        trans = _bsoItemTransaction?.Transaction?.TransactionID;
                     }
                     else
                     {
-                        throw new Exception($"Não foi possível anular o Documento {_bsoItemTransaction.Transaction.TransDocument} {_bsoItemTransaction.Transaction.TransSerial}/{_bsoItemTransaction.Transaction.TransDocNumber}");
+                        throw new Exception($"Não foi possível anular o Documento {_bsoItemTransaction?.Transaction?.TransDocument} {_bsoItemTransaction?.Transaction?.TransSerial}/{_bsoItemTransaction?.Transaction?.TransDocNumber}");
                     }
                 }
                 else
                 {
-                    throw new Exception($"Não foi possível carregar o Documento {_bsoItemTransaction.Transaction.TransDocument} {_bsoItemTransaction.Transaction.TransSerial}/{_bsoItemTransaction.Transaction.TransDocNumber}");
+                    throw new Exception($"Não foi possível carregar o Documento {_bsoItemTransaction?.Transaction?.TransDocument} {_bsoItemTransaction?.Transaction?.TransSerial}/{_bsoItemTransaction?.Transaction?.TransDocNumber}");
                 }
             }
             return trans;
@@ -164,15 +169,16 @@ namespace Sage50c.WebAPI.Controllers
 
             _bsoItemTransaction.RequestTransactionAtDocCode += _bsoItemTransaction_RequestTransactionAtDocCode;
 
-            _document = systemSettings.WorkstationInfo.Document[TransDoc];
+            _document = systemSettings?.WorkstationInfo?.Document?[TransDoc];
         }
 
-        private void _bsoItemTransaction_RequestTransactionAtDocCode(ItemTransaction Transaction, ref string DocCode, ref TransmissionStatusEnum TransmissionStatus)
+        private void _bsoItemTransaction_RequestTransactionAtDocCode(ItemTransaction? Transaction, ref string DocCode, ref TransmissionStatusEnum TransmissionStatus)
         {
             AtSubmissionResponse response;
             AtShipmentSubmission atShipmentSubmission = new AtShipmentSubmission();
 
-            atShipmentSubmission.SetAtWebServiceCredencials(_bsoItemTransaction.WebServiceShipmentConfig.WsATUserID, _bsoItemTransaction.WebServiceShipmentConfig.WsATUserCode, _bsoItemTransaction.WebServiceShipmentConfig.WsATPassword);
+            if (_bsoItemTransaction?.WebServiceShipmentConfig != null)
+                atShipmentSubmission.SetAtWebServiceCredencials(_bsoItemTransaction.WebServiceShipmentConfig.WsATUserID, _bsoItemTransaction.WebServiceShipmentConfig.WsATUserCode, _bsoItemTransaction.WebServiceShipmentConfig.WsATPassword);
 
             if (Transaction != null)
             {
@@ -530,13 +536,17 @@ namespace Sage50c.WebAPI.Controllers
 
         public void SetPaymentDiscountPercent(double PaymentDiscountPercent)
         {
-            _bsoItemTransaction.PaymentDiscountPercent1 = PaymentDiscountPercent;
+            if (_bsoItemTransaction != null)
+                _bsoItemTransaction.PaymentDiscountPercent1 = PaymentDiscountPercent;
         }
 
         public void SetUserPermissions()
         {
-            _bsoItemTransaction.UserPermissions = systemSettings.User;
-            _bsoItemTransaction.PermissionsType = FrontOfficePermissionEnum.foPermByUser;
+            if (_bsoItemTransaction != null)
+            {
+                _bsoItemTransaction.UserPermissions = systemSettings.User;
+                _bsoItemTransaction.PermissionsType = FrontOfficePermissionEnum.foPermByUser;
+            }
         }
 
         public TransactionID SuspendTransaction()

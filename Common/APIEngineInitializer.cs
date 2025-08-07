@@ -50,7 +50,7 @@ namespace Sage50c.WebAPI
             //
             if (APIStarted != null)
             {
-                APIStarted(null, null);
+                APIStarted(null, EventArgs.Empty);
             }
         }
 
@@ -174,7 +174,7 @@ namespace Sage50c.WebAPI
                 // Fire event
                 if (APIStopped != null)
                 {
-                    APIStopped(null, null);
+                    APIStopped(null, EventArgs.Empty);
                 }
             }
         }

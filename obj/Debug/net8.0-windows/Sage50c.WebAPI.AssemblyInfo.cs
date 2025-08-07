@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Sage50c.WebAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5eb3ed68a256f9747d6698e3cf91e43f61763f2d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2c0dc6533d6874f27b743eed9b03380f88676cef")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sage50c.WebAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sage50c.WebAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
