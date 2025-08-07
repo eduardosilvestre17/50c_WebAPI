@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\Sage50c.WebAPI.props" />
+</Project>

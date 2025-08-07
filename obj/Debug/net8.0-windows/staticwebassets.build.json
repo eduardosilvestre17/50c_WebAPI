@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "opRGcA2RW4mr3++hBJ1XwSch8oC4as5wPHp76VTGdZg=",
+  "Source": "Sage50c.WebAPI",
+  "BasePath": "_content/Sage50c.WebAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

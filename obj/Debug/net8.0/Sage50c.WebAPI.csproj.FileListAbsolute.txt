@@ -1,0 +1,8 @@
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.csproj.AssemblyReference.cache
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.AssemblyInfoInputs.cache
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.AssemblyInfo.cs
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.csproj.CoreCompileInputs.cache
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Eduardo Silvestre\Desktop\apps\50c-API\Sage50c.WebAPI\obj\Debug\net8.0\Sage50c.WebAPI.sourcelink.json
