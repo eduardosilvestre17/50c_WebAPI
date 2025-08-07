@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Sage50c.WebAPI.Models;
 using Sage50c.WebAPI.Services;
+using Sage50c.WebAPI.Controllers;
 using S50cBL22;
 using S50cBO22;
+using S50cDL22;
 using S50cSys22;
 
 namespace Sage50c.WebAPI.Controllers
@@ -419,102 +421,87 @@ namespace Sage50c.WebAPI.Controllers
                         
                         try
                         {
-                            // Usar DSOCache diretamente para obter dados da transação
-                            var dsoCache = _sage50cService.DSOCache!;
+                            // Usar DSOItemTransaction.GetItemTransaction diretamente para evitar problemas COM
+                            var dsoItemTransaction = new DSOItemTransaction();
                             var docType = GetDocumentType(transDocument);
+                            var transaction = dsoItemTransaction.GetItemTransaction(docType, transSerial, transDocument, transDocNumber);
                             
-                            // Tentar obter dados básicos da transação via GetItemTransaction
-                            bool isSuspended = false;
-                            bool hasErrorInLoad = false;
-                            var itemTransaction = dsoCache.ItemTransactionProvider.GetItemTransaction(
-                                docType, transSerial, transDocument, transDocNumber, ref isSuspended, ref hasErrorInLoad);
-                            
-                            if (itemTransaction != null && !hasErrorInLoad)
+                            if (transaction != null)
                             {
                                 response = new DocumentoVendaResponseDto
                                 {
-                                    TransSerial = itemTransaction.TransSerial,
-                                    TransDocument = itemTransaction.TransDocument,
-                                    TransDocNumber = itemTransaction.TransDocNumber,
-                                    TransactionID = itemTransaction.TransactionID?.ToString() ?? $"{transSerial}-{transDocument}-{transDocNumber}",
-                                    PartyID = itemTransaction.PartyID,
-                                    CreateDate = itemTransaction.CreateDate,
-                                    CurrencyID = itemTransaction.BaseCurrency?.CurrencyID ?? "EUR",
-                                    Comments = itemTransaction.Comments ?? "Sem comentários",
-                                    TaxIncluded = itemTransaction.TransactionTaxIncluded,
-                                    TotalAmount = itemTransaction.TotalAmount,
+                                    TransSerial = transaction.TransSerial,
+                                    TransDocument = transaction.TransDocument,
+                                    TransDocNumber = transaction.TransDocNumber,
+                                    TransactionID = transaction.TransactionID?.ToString() ?? $"{transSerial}-{transDocument}-{transDocNumber}",
+                                    PartyID = transaction.PartyID,
+                                    CreateDate = transaction.CreateDate,
+                                    CurrencyID = transaction.BaseCurrency?.CurrencyID ?? "EUR",
+                                    Comments = transaction.Comments ?? "Sem comentários",
+                                    TaxIncluded = transaction.TransactionTaxIncluded,
+                                    TotalAmount = transaction.TotalAmount,
                                     TotalTax = 0, // Calculado a partir dos detalhes se necessário
                                     Details = new List<DocumentoVendaDetailResponseDto>()
                                 };
                                 
-                                // Tentar obter detalhes das linhas usando SQL directo
+                                // Carregar detalhes usando ItemTransactionController
                                 try
                                 {
-                                    _logger.LogInformation($"ItemTransaction.Details Count: {itemTransaction.Details?.Count ?? -1}");
-                                    _logger.LogInformation($"TransactionID: {itemTransaction.TransactionID}");
+                                    _logger.LogInformation($"ItemTransaction.Details Count: {transaction.Details?.Count ?? -1}");
+                                    _logger.LogInformation($"TransactionID: {transaction.TransactionID}");
                                     
-                                    // Como GetItemTransaction não carrega detalhes, usar SQL directo
-                                    var sqlQuery = @"
-                                        SELECT 
-                                            LineItemID, ItemID, Description, Quantity, UnitPrice, 
-                                            TaxIncludedPrice, TotalAmount, UnitOfSaleID, WarehouseID
-                                        FROM ItemTransactionDetail 
-                                        WHERE TransactionID = ?";
-                                    
-                                    var command = dsoCache.MainProvider.Database.Connection.CreateCommand();
-                                    command.CommandText = sqlQuery;
-                                    command.Parameters.Add(dsoCache.MainProvider.Database.Connection.CreateParameter());
-                                    command.Parameters[0].Value = itemTransaction.TransactionID;
-                                    
-                                    using (var reader = command.ExecuteReader())
+                                    // Os detalhes devem estar disponíveis através do DSOItemTransaction
+                                    if (transaction.Details != null && transaction.Details.Count > 0)
                                     {
-                                        int detailCount = 0;
-                                        while (reader.Read())
+                                        _logger.LogInformation($"A processar {transaction.Details.Count} detalhes");
+                                        
+                                        for (int i = 1; i <= transaction.Details.Count; i++)
                                         {
-                                            detailCount++;
-                                            var itemID = reader["ItemID"]?.ToString() ?? "";
-                                            var description = reader["Description"]?.ToString() ?? "";
-                                            var quantity = Convert.ToDouble(reader["Quantity"] ?? 0);
-                                            var unitPrice = Convert.ToDouble(reader["UnitPrice"] ?? 0);
-                                            var taxIncludedPrice = Convert.ToDouble(reader["TaxIncludedPrice"] ?? 0);
-                                            var totalAmount = Convert.ToDouble(reader["TotalAmount"] ?? 0);
-                                            var unitOfSaleID = reader["UnitOfSaleID"]?.ToString() ?? "";
-                                            var warehouseID = Convert.ToInt16(reader["WarehouseID"] ?? 0);
-                                            var lineItemID = Convert.ToInt32(reader["LineItemID"] ?? 0);
-                                            
-                                            _logger.LogInformation($"Detalhe SQL {detailCount}: ItemID={itemID}, Qty={quantity}, Price={unitPrice}");
-                                            
-                                            response.Details.Add(new DocumentoVendaDetailResponseDto
+                                            try
                                             {
-                                                LineItemID = lineItemID,
-                                                ItemID = itemID,
-                                                Description = description,
-                                                Quantity = quantity,
-                                                UnitPrice = unitPrice,
-                                                TaxIncludedPrice = taxIncludedPrice,
-                                                LineTotal = totalAmount,
-                                                LineTax = 0,
-                                                UnitOfSaleID = unitOfSaleID,
-                                                WarehouseID = warehouseID,
-                                                TaxPercent = 0,
-                                                ColorID = 0,
-                                                SizeID = 0,
-                                                PropertyValue1 = ""
-                                            });
+                                                var detail = transaction.Details[i];
+                                                _logger.LogInformation($"Detalhe {i}: ItemID={detail.ItemID}, Quantity={detail.Quantity}, UnitPrice={detail.UnitPrice}");
+                                                
+                                                response.Details.Add(new DocumentoVendaDetailResponseDto
+                                                {
+                                                    LineItemID = (int)detail.LineItemID,
+                                                    ItemID = detail.ItemID,
+                                                    Description = detail.Description ?? "",
+                                                    Quantity = detail.Quantity,
+                                                    UnitPrice = detail.UnitPrice,
+                                                    TaxIncludedPrice = detail.TaxIncludedPrice,
+                                                    LineTotal = detail.TotalAmount,
+                                                    LineTax = 0,
+                                                    UnitOfSaleID = detail.UnitOfSaleID ?? "",
+                                                    WarehouseID = detail.WarehouseID,
+                                                    TaxPercent = 0,
+                                                    ColorID = detail.Color?.ColorID ?? 0,
+                                                    SizeID = detail.Size?.SizeID ?? 0,
+                                                    PropertyValue1 = detail.ItemProperties?.PropertyValue1
+                                                });
+                                            }
+                                            catch (Exception itemEx)
+                                            {
+                                                _logger.LogError(itemEx, $"Erro ao processar detalhe {i}");
+                                            }
                                         }
-                                        _logger.LogInformation($"Total de detalhes encontrados via SQL: {detailCount}");
+                                        _logger.LogInformation($"Total de detalhes processados: {response.Details.Count}");
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning("DSOItemTransaction não carregou detalhes ou documento não tem linhas");
                                     }
                                 }
                                 catch (Exception detailEx)
                                 {
-                                    _logger.LogError(detailEx, "Erro ao carregar detalhes via SQL");
+                                    _logger.LogError(detailEx, "Erro ao processar detalhes da transação carregada");
                                 }
                                 
-                                _logger.LogInformation($"Documento carregado via DSOCache: {response.TotalAmount}€");
+                                _logger.LogInformation($"Documento carregado com DSOItemTransaction: {response.TotalAmount}€");
                             }
                             else
                             {
-                                throw new Exception("Falha ao obter ItemTransaction via DSOCache");
+                                throw new Exception("DSOItemTransaction retornou transação nula");
                             }
                         }
                         catch (Exception loadEx)
